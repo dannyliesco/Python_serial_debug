@@ -26,13 +26,13 @@ class SerialAchieve:
         pass
     def show_port(self):
         for i in range(0,len(self.port_list)):
-            print(self.port_list[i])
+            showLog(self.port_list[i])
 
     def show_other(self):
-        print("波特率："+self.bandRate)
-        print("校验位：" + self.checkbit)
-        print("数据位：" + self.databit)
-        print("停止位：" + self.stopbit)
+        showLog("波特率："+self.bandRate)
+        showLog("校验位：" + self.checkbit)
+        showLog("数据位：" + self.databit)
+        showLog("停止位：" + self.stopbit)
     # 返回串口
     def get_port(self):
         return self.port_list
@@ -43,7 +43,7 @@ class SerialAchieve:
     def delete_port(self):
         if self.port != None:
             self.port.close()
-            print("关闭串口完成")
+            showLog("关闭串口完成")
         else:
             pass
 
@@ -53,15 +53,15 @@ class SerialAchieve:
 
     def Write_data(self,data):
         if self.port.isOpen() == False:
-            print("串口打开错误")
+            showLog("串口打开错误")
         else:
             self.port.write(data.encode("utf-8"))  # 返回的是写入的字节数
 
 if __name__ == '__main__':
     myser = SerialAchieve()
-    myser.open_port("COM7")
-    myser.delete_port()
-    myser.show_port()
+    # myser.open_port("")
+    # myser.delete_port()
+    # myser.show_port()
 
 
 
