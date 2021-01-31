@@ -202,7 +202,7 @@ class MainSerial:
         global finished
         resutl = self.doTrans(self.command)
         with lock:
-            self.SendDataView.insert(tkinter.INSERT,resutl)
+            self.showLog(tkinter.INSERT,resutl)
             self.button_Face.config(state=tkinter.NORMAL)
             self.button_QR.config(state=tkinter.NORMAL)
 
@@ -222,12 +222,6 @@ class MainSerial:
         except Exception as e:
             print(e)
             self.showLog("发送失败")
-    def button_Rece_click(self):
-        try:
-            readstr = self.myserial.Read_data()
-            self.ReceDataView.insert(tkinter.INSERT, readstr + " ")
-        except:
-            self.showLog("读取失败")
 
     def showLog(self,data):
         self.SendDataView.insert(tkinter.INSERT,data+"\n")

@@ -30,7 +30,7 @@ class myThread(threading.Thread):
 
     def trans(self):
         string1 = "{\"amount\":\"0.01\",\"code\":0,\"consumeType\":4}"
-        string2 = "trans fail!!!!"
+        string2 = "trans fail!!!!\n"
         string3 = "fail"
 
         # create byte objects from the strings
