@@ -7,6 +7,7 @@
 import serial
 import serial.tools.list_ports
 
+
 class SerialAchieve:
     def __init__(self,band=115200,check="无校验位",data=8,stop=1):
         self.port = None
@@ -22,17 +23,8 @@ class SerialAchieve:
         # 读写的数据
         self.read_data = None
         self.write_data = None
-
         pass
-    def show_port(self):
-        for i in range(0,len(self.port_list)):
-            showLog(self.port_list[i])
 
-    def show_other(self):
-        showLog("波特率："+self.bandRate)
-        showLog("校验位：" + self.checkbit)
-        showLog("数据位：" + self.databit)
-        showLog("停止位：" + self.stopbit)
     # 返回串口
     def get_port(self):
         return self.port_list
@@ -43,7 +35,7 @@ class SerialAchieve:
     def delete_port(self):
         if self.port != None:
             self.port.close()
-            showLog("关闭串口完成")
+            print("关闭串口完成")
         else:
             pass
 
@@ -53,7 +45,7 @@ class SerialAchieve:
 
     def Write_data(self,data):
         if self.port.isOpen() == False:
-            showLog("串口打开错误")
+            print("串口打开错误")
         else:
             self.port.write(data.encode("utf-8"))  # 返回的是写入的字节数
 

@@ -5,12 +5,13 @@
 @ content: 实现串口通讯主类
 @ date: 2021.01.29
 '''
+import os
+import sys
 import threading
 
 import MyThread
 import tkinter
-from tkinter import ttk, RIGHT, Y, LEFT
-
+from tkinter import ttk, RIGHT, Y, LEFT, filedialog
 
 from SerialClass import SerialAchieve   # 导入串口通讯类
 import MisDll
@@ -21,6 +22,16 @@ lock = threading.Lock()  # Lock for shared resources.
 finished = False
 
 
+
+def resource_path(relative_path):
+    """获取程序中所需文件资源的绝对路径"""
+    try:
+        # PyInstaller创建临时文件夹,将路径存储于_MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 class MainSerial:
     def __init__(self):
@@ -34,11 +45,24 @@ class MainSerial:
         self.misdll = None
         self.isOpen = None
         self.timeout = "60"
+        self.dll = None
+        self.isOnDll = False
 
         # 初始化窗体
         self.mainwin = tkinter.Tk()
         self.mainwin.title("MIS模拟器")
         self.mainwin.geometry("600x400")
+
+        # 创建菜单栏功能
+        self.menuBar = tkinter.Menu(self.mainwin)
+        self.mainwin.config(menu=self.menuBar)
+
+        # 创建一个名为File的菜单项
+        fileMenu = tkinter.Menu(self.menuBar)
+        self.menuBar.add_cascade(label="加载动态库", menu=fileMenu)
+
+        # 在菜单项File下面添加一个名为New的选项
+        fileMenu.add_command(label="选择",command=self.onOpen)
 
         # 标签
         self.label1 = tkinter.Label(self.mainwin,text = "串口号:",font = ("宋体",15))
@@ -50,8 +74,6 @@ class MainSerial:
         self.label6 = tkinter.Label(self.mainwin, text="LOG:", font=("宋体", 15))
         self.label6.place(x=230, y=5)
 
-        self.label7 = tkinter.Label(self.mainwin, text="交易结果:", font=("宋体", 15))
-        self.label7.place(x=230, y=200)
 
         # 串口号
         self.com1value = tkinter.StringVar()  # 窗体中自带的文本，创建一个值
@@ -95,12 +117,6 @@ class MainSerial:
                                             width=13, height=1)
         self.button_Cancel.place(x=400, y=2)  # 显示控件
 
-        # 清除接收数据
-        self.button_Cancel = tkinter.Button(self.mainwin, text="清除接收数据",  # 显示文本
-                                            command=self.button_clcRece_click, font=("宋体", 13),
-                                            width=13, height=1)
-        self.button_Cancel.place(x=400, y=197)  # 显示控件
-
         # 人脸交易按键
         self.button_Face = tkinter.Button(self.mainwin, text="人脸",  # 显示文本
                                             command=lambda:self.processTrans("{\"amount\":\"0.01\",\"code\":0,\"consumeType\":4}"), font=("宋体", 13),
@@ -109,21 +125,15 @@ class MainSerial:
 
         # 扫码交易按键
         self.button_QR = tkinter.Button(self.mainwin, text="扫码",  # 显示文本
-                                          command=lambda:self.processTrans("{\"amount\":\"0.01\",\"code\":1,\"consumeType\":4}"), font=("宋体", 13),
+                                          command=lambda:self.processTrans("{\"amount\":\"0.01\",\"code\":1,\"consumeType\":1}"), font=("宋体", 13),
                                           width=10, height=1)
         self.button_QR.place(x=5, y=230)  # 显示控件
 
         # 显示框
         # 实现记事本的功能组件
-        self.SendDataView = tkinter.Text(self.mainwin,width = 40,height = 9,
+        self.SendDataView = tkinter.Text(self.mainwin,width = 40,height = 20,
                                          font = ("宋体",13))  # text实际上是一个文本编辑器
         self.SendDataView.place(x = 230,y = 35)  # 显示
-
-
-        self.ReceDataView = tkinter.Text(self.mainwin, width=40, height=9,
-                                         font=("宋体", 13))  # text实际上是一个文本编辑器
-        self.ReceDataView.place(x=230, y=230)  # 显示
-
 
 
         # 获取界面的参数
@@ -143,6 +153,18 @@ class MainSerial:
         self.combobox_port["value"] = port_str_list
         self.combobox_port.current(0)  # 默认选中第0个
 
+    def onOpen(self):
+        dllfilename = filedialog.askopenfilename(title="Open file",
+                                         filetypes=(("DLL files", "*.dll"), ("All files", "*.*")))
+
+        dllfilename = dllfilename.replace('/', '\\')
+        self.dll = MisDll.CommDll()
+        result = self.dll.loadDll(dllfilename)
+        if result != None:
+            self.showLog("动态库加载成功")
+        else:
+            self.showLog("动态库加载失败")
+
     def show(self):
         self.mainwin.mainloop()
 
@@ -156,8 +178,7 @@ class MainSerial:
             timeout = self.entrySend.get()
             self.showLog("%d"%int(com[3:]))
             port = ctypes.c_int(int(com[3:]))
-            self.isOpen = MisDll.SetCommParam(port,int(self.band),int(timeout))
-            self.showLog("动态库加载%d(0:成功 其他:失败) "%self.isOpen)
+            self.isOpen = self.dll.setcommparam(port,int(self.band),int(timeout))
             self.showLog("打开串口成功")
         else:
             pass
@@ -202,17 +223,17 @@ class MainSerial:
         global finished
         resutl = self.doTrans(self.command)
         with lock:
-            self.showLog(tkinter.INSERT,resutl)
+            self.showLog(resutl)
             self.button_Face.config(state=tkinter.NORMAL)
             self.button_QR.config(state=tkinter.NORMAL)
 
     def doTrans(self,command):
         try:
             if self.isOpen >= 0:
-                self.showLog("开始交易...")
                 send_str = self.entrySend.get()
                 self.showLog("超时时间:%s"%send_str)
-                t = MyThread.myThread(command)
+                self.showLog("开始交易...")
+                t = MyThread.myThread(command,self.dll)
                 t.setDaemon(True)
                 t.start()
                 t.join()
@@ -230,5 +251,6 @@ class MainSerial:
 if __name__ == '__main__':
     my_ser1 = MainSerial()
     my_ser1.show()
+    print(resource_path)
 
 

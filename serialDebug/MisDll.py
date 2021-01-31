@@ -7,23 +7,39 @@
 '''
 import ctypes
 import os
+import shutil
 
 # Try to locate the .so file in the same directory as this file
-_file = 'PortComm.dll'
-_path = os.path.join(*(os.path.split(__file__)[:-1] + (_file,)))
-_mod = ctypes.cdll.LoadLibrary(_path)
+class CommDll:
+
+    def __init__(self):
+        self.mod = 'nothing'
+
+    def loadDll(self,filename):
+        os.add_dll_directory(os.path.dirname(filename))
+        print(os.path.dirname(filename))
+        # SetCommParam(int nCommPort, int nBps, int nTimeout)
+        print("filename"+filename)
+
+        (path, _FILE_NAME) = os.path.split(filename)
+        shutil.copyfile(filename,"./")
+        result = self.mod = ctypes.windll.LoadLibrary("./"+_FILE_NAME)
+        print("动态库加载结果",result)
+        self.mod.SetCommParam.argtypes = (ctypes.c_int, ctypes.c_int, ctypes.c_int)
+        self.mod.SetCommParam.restype = ctypes.c_int
 
 
+        # POS_Trans(char *pInData, int nQuertyTimes, char *pOutData, char *psMsgID)
+        self.mod.POS_Trans.argtypes = (ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_char_p)
+        self.mod.POS_Trans.restype = ctypes.c_int
+        return result
 
-# SetCommParam(int nCommPort, int nBps, int nTimeout)
-SetCommParam = _mod.SetCommParam
-SetCommParam.argtypes = (ctypes.c_int, ctypes.c_int,ctypes.c_int)
-SetCommParam.restype = ctypes.c_int
+    def setcommparam(self,band,int,timeout):
+        return self.mod.SetCommParam(band,int,timeout)
 
-# POS_Trans(char *pInData, int nQuertyTimes, char *pOutData, char *psMsgID)
-POS_Trans = _mod.POS_Trans
-POS_Trans.argtypes = (ctypes.c_char_p, ctypes.c_int,ctypes.c_char_p,ctypes.c_char_p)
-POS_Trans.restype = ctypes.c_int
+    def pos_trans(self,p1,p2,p3,p4):
+        return self.mod.POS_Trans(p1,p2,p3,p4)
+
 
 
 

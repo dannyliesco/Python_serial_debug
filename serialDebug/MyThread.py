@@ -9,14 +9,12 @@
 # -*- coding: UTF-8 -*-
 import ctypes
 import threading
-import MisDll
-from serialDebug.MainSerial import MainSerial
-
 
 class myThread(threading.Thread):
-    def __init__(self, indata):
+    def __init__(self, indata,dll):
         threading.Thread.__init__(self)
         self.indata = indata
+        self.dll = dll
 
     def run(self):
 
@@ -38,14 +36,14 @@ class myThread(threading.Thread):
         b_string2 = ctypes.c_char_p(string2.encode('utf-8'))
         b_string3 = string3.encode('utf-8')
         try:
-            MisDll.POS_Trans(b_string1,
+            self.dll.pos_trans(b_string1,
                                       2,
                                       b_string2,
                                       b_string3)
-            # print("TYPE", type(b_string2))
-            # print(b_string2)
+            print("TYPE", type(b_string2))
+            print(b_string2)
             s = b_string2.value
-            # print(s)
+            print(s)
             data = str(s,'gbk')
             return data
         except Exception as e:
