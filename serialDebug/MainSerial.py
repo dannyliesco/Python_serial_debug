@@ -1,3 +1,4 @@
+# coding:utf-8
 '''
 @ author: hogen
 @ tools: pycharm 
@@ -5,6 +6,8 @@
 @ date: 2021.01.29
 '''
 import threading
+
+import MyThread
 import tkinter
 from tkinter import ttk, RIGHT, Y, LEFT
 
@@ -75,31 +78,6 @@ class MainSerial:
         test_str = tkinter.StringVar(value="60")
         self.entrySend = tkinter.Entry(self.mainwin, width=3, textvariable=test_str, font=("宋体", 15))
         self.entrySend.place(x=120, y=80)  # 显示
-
-
-        # 校验位
-        # self.checkvalue = tkinter.StringVar()  # 窗体中自带的文本，创建一个值
-        # self.combobox_check = ttk.Combobox(self.mainwin, textvariable=self.checkvalue, width=10, font=("宋体", 13))
-        # # 输入选定内容
-        # self.combobox_check["value"] = ["无校验位"]  # 这里先选定
-        # self.combobox_check.current(0)  # 默认选中第0个
-        # self.combobox_check.place(x=105, y=85)  # 显示
-
-        # 数据位
-        # self.datavalue = tkinter.StringVar()  # 窗体中自带的文本，创建一个值
-        # self.combobox_data = ttk.Combobox(self.mainwin, textvariable=self.datavalue, width=10, font=("宋体", 13) )
-        # 输入选定内容
-        # self.combobox_data["value"] = ["8", "9", "0"]  # 这里先选定
-        # self.combobox_data.current(0)  # 默认选中第0个
-        # self.combobox_data.place(x=105, y=125)  # 显示
-
-        # 停止位
-        # self.stopvalue = tkinter.StringVar()  # 窗体中自带的文本，创建一个值
-        # self.combobox_stop = ttk.Combobox(self.mainwin, textvariable=self.stopvalue, width=10, font=("宋体", 13))
-        # 输入选定内容
-        # self.combobox_stop["value"] = ["1", "0"]  # 这里先选定
-        # self.combobox_stop.current(0)  # 默认选中第0个
-        # self.combobox_stop.place(x=105, y=165)  # 显示
 
         # 按键显示，打开串口
         self.button_OK = tkinter.Button(self.mainwin, text="打开串口",
@@ -200,10 +178,12 @@ class MainSerial:
         try:
             if self.isOpen >= 0:
                 self.showLog("开始发送数据...")
-                send_str1 = self.entrySend.get()
-                t= threading.Thread(target=self.trans)
+                send_str = self.entrySend.get()
+                t = MyThread.myThread(send_str)
+                self.SendDataView.insert(tkinter.INSERT, send_str+" ")
                 t.start()
-                self.SendDataView.insert(tkinter.INSERT, send_str1+" ")
+                t.join()
+                self.SendDataView.insert(tkinter.INSERT, t.get_result())
             else:
                 self.showLog("串口没有打开")
         except Exception as e:
@@ -215,27 +195,6 @@ class MainSerial:
             self.ReceDataView.insert(tkinter.INSERT, readstr + " ")
         except:
             self.showLog("读取失败")
-
-    def trans(self):
-        string1 = "0200637B22616D6F756E74223A22302E3031222C22636F6465223A302C22636F6E73756D6554797065223A342C226D7367223A22B3C9B9A6B7A2C6F0BDBBD2D7227D0338"
-        string2 = "no"
-        string3 = "no"
-
-        # create byte objects from the strings
-        b_string1 = string1.encode('utf-8')
-        b_string2 = ctypes.c_char_p(string2.encode('utf-8'))
-        b_string3 = string3.encode('utf-8')
-
-        result = MisDll.POS_Trans( b_string1,
-                                   2,
-                                   b_string2,
-                                   b_string3)
-
-        print("TYPE",type(b_string2))
-        s = b_string2.value
-        data = str(s,'gbk')
-        self.showLog("POS_Trans recevie data:"+data)
-        self.showLog("POS_Trans result is %d"%result)
 
     def showLog(self,data):
         self.SendDataView.insert(tkinter.INSERT,data+"\n")
