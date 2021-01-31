@@ -16,6 +16,11 @@ from SerialClass import SerialAchieve   # 导入串口通讯类
 import MisDll
 import ctypes
 
+POLLING_DELAY = 250  # ms
+lock = threading.Lock()  # Lock for shared resources.
+finished = False
+
+
 
 class MainSerial:
     def __init__(self):
@@ -40,18 +45,12 @@ class MainSerial:
         self.label1.place(x = 5,y = 5)
         self.label2 = tkinter.Label(self.mainwin, text="波特率:", font=("宋体", 15))
         self.label2.place(x=5, y=45)
-        # self.label3 = tkinter.Label(self.mainwin, text="校验位:", font=("宋体", 15))
-        # self.label3.place(x=5, y=85)
-        # self.label4 = tkinter.Label(self.mainwin, text="数据位:", font=("宋体", 15))
-        # self.label4.place(x=5, y=125)
-        # self.label5 = tkinter.Label(self.mainwin,text = "停止位:",font = ("宋体",15))
-        # self.label5.place(x = 5,y = 165)
 
         # 文本显示，清除发送数据
         self.label6 = tkinter.Label(self.mainwin, text="LOG:", font=("宋体", 15))
         self.label6.place(x=230, y=5)
 
-        self.label7 = tkinter.Label(self.mainwin, text="接收数据:", font=("宋体", 15))
+        self.label7 = tkinter.Label(self.mainwin, text="交易结果:", font=("宋体", 15))
         self.label7.place(x=230, y=200)
 
         # 串口号
@@ -103,16 +102,16 @@ class MainSerial:
         self.button_Cancel.place(x=400, y=197)  # 显示控件
 
         # 人脸交易按键
-        self.button_Send = tkinter.Button(self.mainwin, text="人脸",  # 显示文本
-                                            command=self.button_Send_click, font=("宋体", 13),
+        self.button_Face = tkinter.Button(self.mainwin, text="人脸",  # 显示文本
+                                            command=lambda:self.processTrans("{\"amount\":\"0.01\",\"code\":0,\"consumeType\":4}"), font=("宋体", 13),
                                             width=10, height=1)
-        self.button_Send.place(x=5, y=180)  # 显示控件
+        self.button_Face.place(x=5, y=180)  # 显示控件
 
         # 扫码交易按键
-        self.button_Send = tkinter.Button(self.mainwin, text="扫码",  # 显示文本
-                                          command=self.button_Rece_click, font=("宋体", 13),
+        self.button_QR = tkinter.Button(self.mainwin, text="扫码",  # 显示文本
+                                          command=lambda:self.processTrans("{\"amount\":\"0.01\",\"code\":1,\"consumeType\":4}"), font=("宋体", 13),
                                           width=10, height=1)
-        self.button_Send.place(x=5, y=230)  # 显示控件
+        self.button_QR.place(x=5, y=230)  # 显示控件
 
         # 显示框
         # 实现记事本的功能组件
@@ -164,6 +163,8 @@ class MainSerial:
             pass
 
     def button_Cancel_click(self):
+        self.button_Face.config(state=tkinter.NORMAL)
+        self.button_QR.config(state=tkinter.NORMAL)
         self.myserial.delete_port()
         self.isOpen = -1
         self.showLog("关闭串口成功")
@@ -175,15 +176,47 @@ class MainSerial:
         self.ReceDataView.delete("1.0", "end")
 
     def button_Send_click(self):
+        self.isbtnClicked = True
+        self.thread = threading.Thread()
+
+    def processTrans(self,command):
+        global finished
+        self.command = command
+        self.button_Face.config(state=tkinter.DISABLED)
+        self.button_QR.config(state=tkinter.DISABLED)
+        with lock:
+            finished = False
+        t = threading.Thread(target=self.count)
+        t.daemon = True
+        self.mainwin.after(POLLING_DELAY, self.check_status)  # Start polling.
+        t.start()
+
+    def check_status(self):
+        with lock:
+            if not finished:
+                self.mainwin.after(POLLING_DELAY, self.check_status)  # Keep polling.
+            else:
+                print('end')
+
+    def count(self):
+        global finished
+        resutl = self.doTrans(self.command)
+        with lock:
+            self.SendDataView.insert(tkinter.INSERT,resutl)
+            self.button_Face.config(state=tkinter.NORMAL)
+            self.button_QR.config(state=tkinter.NORMAL)
+
+    def doTrans(self,command):
         try:
             if self.isOpen >= 0:
-                self.showLog("开始发送数据...")
+                self.showLog("开始交易...")
                 send_str = self.entrySend.get()
-                t = MyThread.myThread(send_str)
-                self.SendDataView.insert(tkinter.INSERT, send_str+" ")
+                self.showLog("超时时间:%s"%send_str)
+                t = MyThread.myThread(command)
+                t.setDaemon(True)
                 t.start()
                 t.join()
-                self.SendDataView.insert(tkinter.INSERT, t.get_result())
+                return t.get_result()
             else:
                 self.showLog("串口没有打开")
         except Exception as e:
@@ -198,6 +231,7 @@ class MainSerial:
 
     def showLog(self,data):
         self.SendDataView.insert(tkinter.INSERT,data+"\n")
+
 
 if __name__ == '__main__':
     my_ser1 = MainSerial()
