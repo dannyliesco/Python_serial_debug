@@ -16,14 +16,12 @@ class CommDll:
         self.mod = 'nothing'
 
     def loadDll(self,filename):
+        os.add_dll_directory(os.getcwd())
         os.add_dll_directory(os.path.dirname(filename))
-        print(os.path.dirname(filename))
+        print("path:"+os.path.dirname(filename))
         # SetCommParam(int nCommPort, int nBps, int nTimeout)
-        print("filename"+filename)
-
-        (path, _FILE_NAME) = os.path.split(filename)
-        shutil.copyfile(filename,"./")
-        result = self.mod = ctypes.windll.LoadLibrary("./"+_FILE_NAME)
+        print("filename:"+filename)
+        result = self.mod = ctypes.windll.LoadLibrary(filename)
         print("动态库加载结果",result)
         self.mod.SetCommParam.argtypes = (ctypes.c_int, ctypes.c_int, ctypes.c_int)
         self.mod.SetCommParam.restype = ctypes.c_int
