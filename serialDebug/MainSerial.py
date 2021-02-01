@@ -43,7 +43,7 @@ class MainSerial:
         self.stop = None
         self.myserial = None
         self.misdll = None
-        self.isOpen = None
+        self.isOpen = -1
         self.timeout = "60"
         self.dll = None
         self.isOnDll = False
@@ -169,6 +169,12 @@ class MainSerial:
         self.mainwin.mainloop()
 
     def button_OK_click(self):
+
+        if self.isOpen >= 0:
+            self.button_Cancel_click()
+            return
+
+
         '''
         @ 串口打开函数
         :return: 
@@ -178,8 +184,17 @@ class MainSerial:
             timeout = self.entrySend.get()
             self.showLog("%d"%int(com[3:]))
             port = ctypes.c_int(int(com[3:]))
-            self.isOpen = self.dll.setcommparam(port,int(self.band),int(timeout))
-            self.showLog("打开串口成功")
+            self.isOpen = ctypes.c_int(self.dll.setcommparam(port,int(self.band),int(timeout))).value
+            print("动态库打开串口:%d"%(self.isOpen))
+            if self.isOpen >= 0 :
+                self.showLog("打开串口成功")
+                self.button_OK.config(text = "关闭串口")
+            else:
+                self.showLog("打开串口失败")
+                self.button_Face.config(state=tkinter.DISABLED)
+                self.button_QR.config(state=tkinter.DISABLED)
+                pass
+
         else:
             pass
 
@@ -189,6 +204,7 @@ class MainSerial:
         self.myserial.delete_port()
         self.isOpen = -1
         self.showLog("关闭串口成功")
+        self.button_OK.config(text="打开串口")
 
     def button_clcSend_click(self):
         self.SendDataView.delete("1.0","end")
